@@ -1,5 +1,4 @@
 # Automatic-Rule-Generation-Metasploit
-GitHub repository for the Automatic Generation of Snort Rules based on Metasploit Vulnerabiities
 
 Every new device added to a network brings with it a new set of vulnerabilities that pose a threat to the entire system.To keep a track of what is added to the network, figuring out the threats introduced and implementing corresponding defenses is tedious as well as an error prone process.Given that vulnerabilities of network devices are known, we plan to use this information to identify dangerous packets and report them. This entire project involves building an algorithm that would first identify threats/attack modules for any device OS that is being added to the network, correlate these threats/attack modules to their respective CVEs and finally either use the Snort community rule files to look for pre-exisiting rules, or craft the Snort rule based on the payload, which will alert the network to malicious traffic. This ensures that the network has dynamic defense setup and is updated against known threats.
 
@@ -8,6 +7,7 @@ Design and Implementation
 
 **Design**
 We intend to show how we can alert our network against known attacks on devices, without manual intervention. For this purpose, our design includes victim machines, which represent various new and un-patched devices that are added into the network. Snort IDS is used to detect and report an ongoing attack. Our Algorithm looks to leverage the Community Rules of Snort, by first looking at automatically determining the Vulnerabilities of the OS of the device on Metasploit and using the CVEs of those known vulnerabilities to filter and add corresponding Snort Rule to flag any potential malicious traffic. In order to increase the percentage of Modules having a direct Snort Rule correlation, we have also considered reading all previous versions of the Community Rulesets if the rule is absent in the latest version of the community ruleset. We have also looked to extend the algorithm to solve injection based overflow attacks due to a common signature being found across those attacks that we exploited.
+
 **Infrastructure and Testbed Setup**
 Our testbed has two major types of nodes - attacker and the victims. Each of these VMs are on TopoMojo environment as shown in Figure 1.
 
@@ -19,12 +19,13 @@ Snort: Last component of our setup is Snort. Snort is an open source network int
 
 Due to testbed limitations, we don’t have an independent Snort VM between Kali and Windows. It is included as part of the Linux machine, which is the Attacker VM.
 Snort can be configured to block the attack. However, for the purpose of our project, we have used Snort to passively detect and report an attack.
+
 **Implementation**
 Figure 2 explains the algorithm used to report an attack on our dynamic network. As and when a new machine is added to the network, the OS version is detected and taken as input in the snort algorithm. Based on the OS, we find the list vulnerabilities applicable to that version. Eventually we apply the set of corresponding snort rules, to detect and report known attacks that can be carried out on this OS version. Our assumption is that the attacker would use tools like Metasploit to find vulnerabilities in the device and these are the vulnerabilities that we need to protect our setup against.
 
-![Algorithm flow](Algorithm.PNG "fig:") [fig:algorithm]
+![Algorithm Flow](Algorithm.png "fig:")
 
-Figure [fig:algorithm] explains the algorithm used to report an attack on our dynamic network. As a new machine is added, the OS version is detected and taken as input in the snort algorithm. Based on the OS, we find its vulnerabilities and a set of corresponding snort rules are applied, to detect and report known attacks that can be carried out on this OS.
+Figure [Algorithm Flow] explains the algorithm used to report an attack on our dynamic network. As a new machine is added, the OS version is detected and taken as input in the snort algorithm. Based on the OS, we find its vulnerabilities and a set of corresponding snort rules are applied, to detect and report known attacks that can be carried out on this OS.
 
 Input: When a new system gets added in the our setup, we periodically poll the network to detect the type and OS version of the newly added node. We take this as an input file in our algorithm.
 Finding CVEs: From the OS version obtained above, we query Metasploit database to get all or top few vulnerabilities(CVEs) available for that OS version using Metasploit search and info commands in our code.
@@ -33,9 +34,9 @@ Finding Snort Ruleset: We query the Snort community ruleset for the CVE. If foun
 Finding Snort rules in Git Repositories: Snort community rules is not exhaustive. Preliminary results using Community Rulesets gave an accuracy of 15% in finding a direct mapping of a CVE to it’s snort rules. Using unofficial Github Repository which contains old community ruleset increased CVE coverage immensely and also allowed to extend our code’s knowledge base easily. Our assumption here is that the Git repository itself is reliable even though it is not official.
 OS to Snort rule mapping: Finally, map the OS version to the corresponding snort rules. Store in file: After the vulnerability dictionary is created, we write these rules in local\_test.rules files. Rules in this file are used by the IDS to detect the attack.
 
-![Code Flow - Implementation of the Algorithm](Implementation_of_Algorithm.JPG "fig:") [fig:implementation]
+![Code Flow - Implementation of the Algorithm](Implementation_of_Algorithm.JPG "fig:")
 
-Figure [fig:implementation] explains how the code works in our implementation. Details on each activity in the code flow is given below:
+Figure above explains how the code works in our implementation. Details on each activity in the code flow is given below:
 
 **Writing Snort rule to file**:
 
@@ -68,11 +69,12 @@ Evaluation
 ==========
 
 **Evaluation Setup**
-The figure [fig:setup] depicts our testbed setup. We have a single attacker VM and multiple vulnerable VMs in our setup. The attacker VM has network connectivity to the victim machines. Snort is in the middle of the attacker and victims, monitoring egress traffic from attacker VM. Snort variables “HOMENET” and “EXTERNALNET” are modified to suit the current test topology.
+The figure of the setup depicts our testbed setup. We have a single attacker VM and multiple vulnerable VMs in our setup. The attacker VM has network connectivity to the victim machines. Snort is in the middle of the attacker and victims, monitoring egress traffic from attacker VM. Snort variables “HOMENET” and “EXTERNALNET” are modified to suit the current test topology.
 
 We have deployed multiple victim OS such as Windows Server 2008, 2012 and 2016 R2 versions. We have explored vulnerabilities on common network protocols like SMB, UDP and HTTP. We tested them on some of most recent and in-famous vulnerabilities like “Eternal-Blue”.
 
 Our metrics of interest are to ensure a that when a known attack occurs, it gets detected successfully. Secondly, we expect a good snort rule coverage for known OS vulnerabilities. For this, we look for snort rules corresponding to CVEs in the “Community Rule-set” and Git repositories of earlier releases of the rule sets. We anticipate to analyze the packet captures and design the SNORT rules based on attack packet payload if snort rules are not found with previous approaches.
+
 **Methodology**
 The Snort website has list of community rule-sets which was initially used to construct OS to rules dictionary. The community rule-set is a collection of frequently used Snort rules for different CVEs. Preliminary results in this stage with this rule-set gave us an accuracy of 15% i.e. 15% of the exploits had a direct mapping of a CVE listed in the references of the snort rule. Further including earlier versions of the rulesets available in github repositories, we were able to achieve an increased hit percentage of 70%.
 
@@ -90,13 +92,13 @@ Using Metasploit, we as an attacker choose the SMB protocol and choose to target
 
 As shown in Figure 4 we have 2 terminals open. One is the attacking terminal and the other terminal depicts the output of the attack. As we execute the above mentioned steps, we observe that the Snort was able to detect and report the attack successfully.
 
-![Attack Result](Result1.jpeg "fig:") [fig:attack<sub>r</sub>esult]
+![Attack Result](Result1.jpeg "fig:")
 
 **How the algorithm works against the attack **:
 
 -   Code gets OS version Windows 2008 R2 as input.
 
--   The code first discovers all the good, average and excellent metasploit modules for a target OS and platform using *“search”*command :
+-   The code first discovers all the good, average and excellent metasploit modules for a target OS and platform using *“search”* command :
 
     *msfconsole -q -x search type:exploit platform:Windows target:Windows 2008 R2 rank:excellent rank:good rank:average.*
 
@@ -104,7 +106,7 @@ As shown in Figure 4 we have 2 terminals open. One is the attacking terminal and
 
 -   Corresponding snort rules are found in Snort community and added in local.rules file.
 
-    ![Snort rules generated](snort_rules.png "fig:") [fig:snort<sub>r</sub>ules]
+    ![Snort rules generated](snort_rules.png "fig:")
 
 **Helper function to calculate coverage percentage of Ruleset**:
 
