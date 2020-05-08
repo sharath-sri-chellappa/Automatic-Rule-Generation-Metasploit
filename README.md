@@ -25,7 +25,7 @@ Figure 2 explains the algorithm used to report an attack on our dynamic network.
 
 ![Algorithm Flow](Algorithm.png "fig:")
 
-Figure [Algorithm Flow] explains the algorithm used to report an attack on our dynamic network. As a new machine is added, the OS version is detected and taken as input in the snort algorithm. Based on the OS, we find its vulnerabilities and a set of corresponding snort rules are applied, to detect and report known attacks that can be carried out on this OS.
+Figure above explains the algorithm used to report an attack on our dynamic network. As a new machine is added, the OS version is detected and taken as input in the snort algorithm. Based on the OS, we find its vulnerabilities and a set of corresponding snort rules are applied, to detect and report known attacks that can be carried out on this OS.
 
 Input: When a new system gets added in the our setup, we periodically poll the network to detect the type and OS version of the newly added node. We take this as an input file in our algorithm.
 Finding CVEs: From the OS version obtained above, we query Metasploit database to get all or top few vulnerabilities(CVEs) available for that OS version using Metasploit search and info commands in our code.
@@ -38,15 +38,76 @@ OS to Snort rule mapping: Finally, map the OS version to the corresponding snort
 
 Figure above explains how the code works in our implementation. Details on each activity in the code flow is given below:
 
+Details on each activity in the code flow is given below:
+
+**CVE Dictionary**: Mapping of a list of CVE Numbers for the Metasploit Modules.
+
+**Rule Set**: Mapping of a list of Snort Rules to the Metasploit Module.
+
+**Vulnerability Dictionary**: Mapping of a list of Metasploit Modules for a Target OS.
+
 **Writing Snort rule to file**:
 
--   We created a Vulnerability Dictionary we created a mapping of a list of vulnerabilities for a target operating system
+-   For each module in the Vulnerability Dictionary for the OS, we write the rules on to the local.rules file which will be used by Snort for detection of malicious traffic.
 
--   For each module in the Vulnerability Dictionary for the OS, we write the rules on to the “local.rules” file which will be used by Snort for detection of malicious traffic.The code snippet is as shown in Appendix [appendix:write<sub>t</sub>o<sub>s</sub>nort].
+The code responsible for this is given in write_to_snort.
 
--   We search the rules for each CVE in the Vulnerability dictionary for the OS, and return the rule list for Target OS.The code snippet is as shown in Appendix [appendix:vulnerability<sub>m</sub>apper].
+**Linking Action and Target version**:
 
--   For each CVE given to the function, we first iterate through the rule set and see if there is a rule for the CVE in the keys. If there is one, we append this to a list which we will then return.The code snippet is as shown in Appendix [appendix:snort<sub>g</sub>en].
+-   For each CVE in the Vulnerability dictionary for the OS, we call the function to fetch the snort rule for the corresponding CVE for the module. A list of rules is returned for each Target OS.
+
+The code responsible for this is given in vulnerability_mapper.
+
+**Fetching Snort Rule for each CVE**:
+
+-   For each CVE given to the function, we first iterate through the rule set and see if there is a rule for the CVE in the keys. If there is one, we append this to a list which we will then return.
+
+The code responsible for this is given in snort_gen.
+
+**Creation of dictionary mapping CVE to Exploit and exploit to target**:
+
+-   This is the function responsible for creating the vulnerability dictionary as well as the CVE Dictionary.
+
+-   The first step in this function is to discover all the good, average and excellent metasploit modules for a given Network Service (using the description keyword) or for a target OS and platform.The command for achieving that is as follows:
+
+    ``` {.python language="Python"}
+        msfconsole -q -x \"search type:exploit platform:<platform> target:<target> description:<service> rank:excellent rank:good rank:average\"
+        
+    ```
+
+-   The output from the command is parsed and the exploit names are extracted for each command. With the exploit names, we then use the ***“info”*** command to identify the potential CVEs linked to each module. **Please note that there may be cases of modules which do not have the CVEs linked. These will be cast as part of the Modules which we are unable to find a Snort rule as part of the Community set or Earlier releases.**
+
+-   The list of vulnerabilities which have been inferred from the command are returned while the CVE dictionary mapping each Exploit/Module to its CVE is created.
+
+The code responsible for this is given in create_vulnerabilty_dict.
+
+**Creating rule for each CVE from Community Ruleset and modifying to suit test topology**:
+
+-   First we iterate through each of the Exploits/Modules for the target OS (Vulnerability Dictionary).
+
+-   Then we iterate through each of the CVEs for the Exploit/Module in the CVE Dictionary.
+
+-   With each CVE, we iterate through the Community Ruleset to do a regex match with the CVE part of the regex search string. For each CVE which matches the search, modifications with the HOMENET and EXTERNALNET are made to suit the current test topology.
+
+-   This rule is then appended to the rule set which contains the exploit name as key and the list of rules for that exploit as value.
+
+The code responsible for this is given in create_rule_set.
+
+**Creating rule for each CVE from earlier versions of the community ruleset and modifying to suit test topology**:
+
+-   The same steps are followed as previously but with a list of files from earlier releases replacing the single current release of the Community Ruleset.
+
+-   With each CVE, instead of iterating through the Community Ruleset, we iterate through a list of files which are previous community releases of the rule set to do a regex match with the CVE part of the regex search string. For each CVE which matches the search, modifications with the HOMENET and EXTERNALNET are made to suit the current test topology.
+
+-   This rule is then appended to the rule set which contains the exploit name as key and the list of rules for that exploit as value.
+
+The code responsible for this is given in create_rule_set_github.
+
+**Helper function to calculate coverage percentage of Ruleset**:
+
+-   This helper function just calculates the coverage percentage by simply finding out the number of exploits in the Rule Set which do not have a Snort Rule as part of the Values and divides this number by the total number of exploits for the particular target OS.
+
+The code responsible for this is given in coverage_count.
 
 **Technical Challenges**
 
@@ -94,7 +155,7 @@ As shown in Figure 4 we have 2 terminals open. One is the attacking terminal and
 
 ![Attack Result](Result1.jpeg "fig:")
 
-**How the algorithm works against the attack **:
+**How the algorithm works against the attack**:
 
 -   Code gets OS version Windows 2008 R2 as input.
 
@@ -107,14 +168,6 @@ As shown in Figure 4 we have 2 terminals open. One is the attacking terminal and
 -   Corresponding snort rules are found in Snort community and added in local.rules file.
 
     ![Snort rules generated](snort_rules.png "fig:")
-
-**Helper function to calculate coverage percentage of Ruleset**:
-
--   The coverage of Snort rules is a ratio of number of exploits having corresponding Snort rules (either the Snort community rules or the git repositories) to the total number of known exploits for the victim OS.The code snippet for this is given in [appendix:coverage<sub>c</sub>ount].
-
-The Table [Mapping Results] in Appendix shows the number of exploits that we successfully mapped Snort Rules for and the number of Overflow attacks that we crafted the Snort Rule for after observing the behaviour of the Metasploit Modules from PCAPs.
-
-The table  [Validation Results] gives us the estimate of the number of rules that have been tested to verify if they flag off vulnerable traffic or not.
 
 Conclusions and Limitations
 ===========================
