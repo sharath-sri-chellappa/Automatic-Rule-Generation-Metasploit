@@ -1,59 +1,7 @@
 # Automatic-Rule-Generation-Metasploit
 GitHub repository for the Automatic Generation of Snort Rules based on Metasploit Vulnerabiities
 
-
-
 Every new device added to a network brings with it a new set of vulnerabilities that pose a threat to the entire system.To keep a track of what is added to the network, figuring out the threats introduced and implementing corresponding defenses is tedious as well as an error prone process.Given that vulnerabilities of network devices are known, we plan to use this information to identify dangerous packets and report them. This entire project involves building an algorithm that would first identify threats/attack modules for any device OS that is being added to the network, correlate these threats/attack modules to their respective CVEs and finally either use the Snort community rule files to look for pre-exisiting rules, or craft the Snort rule based on the payload, which will alert the network to malicious traffic. This ensures that the network has dynamic defense setup and is updated against known threats.
-
-Introduction
-============
-
-Modern networks have diverse types of devices connected to them. There are IoT devices like cameras, printers that get added and removed frequently from a network. Having devices added ad-hoc into the network makes it vulnerable to new attacks. For this, a network admin must find the new devices added, find their vulnerabilities and add relevant defenses into the network. This method is time consuming and prone to human error. It also depends on the availability of a network admin to manually ensure security of a device introduced to the network.
-
-The projects aims to detect and identify newly added devices. Further, it aims to look for possible vulnerabilities that each new device adds to the network. One these vulnerabilities are identified, the corresponding checks are put in place to ensure that they are safe from attackers.
-
-To accomplish the above goal we look to develop an algorithm to craft a Snort Rule based on the Packet Fields which would help log any further packet of the same type at the gateway.
-
-This project tries to automate the work of network administrators by identifying and configuring defenses for each device added into the network. It increases the resiliency of these networks by avoiding human error in configuring defenses.
-
-There has been some prior work and informative papers in this domain. Some demonstrate that Mirai-style attacks can be prevented without any modifications to devices. One of the papers proposes measures to secure a network by implementing end-to-end security and utilizing the infrastructure of SDN. Another paper discussed an automated method for constructing and assessing the quality of the network traffic filtering rules. However, the above discussed work isn’t scalable. Our project adds value by automatically adding defenses for the devices newly added to the network.
-
-Once the device is connected, vulnerabilities are identified. As discussed in the later sections, we explore the idea of adding SNORT rules to drop/alert any packets which match an already identified threat signature.
-
-What we have implemented currently is a mapping of Snort Rules from either the current community ruleset or earlier releases of the ruleset to each metasploit exploit/module which has been deemed with a rank of good, excellent or average. If the exploit is not in either of these brackets, we look to see if we can add Snort Rules to the Rules file by reading the saved PCAPs of these rules and understanding the type of attack. Since Metasploit has a tendency to carry out all injection based attacks on Port 4444, we are able to identify and craft Snort rules for these type of attacks. With this setup, we have achieved a coverage of 70 percent, showing that we can automatically add rules for 70 percent of the exploits/modules related to the target operating system of the device added on to the network.
-
-Our work can be looked at as an algorithmic contribution towards building a Smart IDS which not only carries out the alerting/blocking of malicious traffic but also looks to automatically add Snort Rules based on the target OS that is being added to the network.
-
-Background
-==========
-
-There is limited work done in this domain. Primarily, we could find 3 papers
-
-1.  IDioT: Securing the Internet of Things like it’s 1994:
-
-    -   The paper suggests a network-based isolation and filtering system for IoT devices. The proof-of-concept shown in paper demonstrates that Mirai-style attacks can be prevented without any modifications to devices.
-
-    -   The given work emphasizes on how policy based filtering can be done for IoT Devices. It focuses on building an algorithm to automate the building of these policies. This is part of the PoC explained in the paper.
-
-    -   The PoC they developed inputs a policy file and converts entries in the file into iptables rules or dnsmasq whitelist entries. This is done by reading network packet captures (in the form of pcap files) and produces a JSON policy.
-
-    -   With this information in mind, our work basically looks to build something similar, except looking more in depth into leveraging this for Snort Rules. Our contribution would be similar in the sense of an algorithmic contribution which would help automate Network Defenses, thereby drawing parallels from this work.
-
-2.  AutoSecSDNDemo: Demonstration of automated end-to-end security in software-defined networks
-
-    -   The paper proposes measures to secure a network by implementing end-to-end security and utilizing the infrastructure of SDN. It has 4 main parts, AutoSecSDN-Agent, AutoSecSDN-App, Controller and IDS. Higher flexibility is achieved by using a modular system for securing the network traffic. This is supported by the AutoSecSDN-Agent, which is installed on each host within the network by utilizing simple configuration files and a combination of modules to secure the network connections. The assignment of these configurations to network connections is done by the AutoSecSDN-App, as a central management point. The AutoSecSDN-App is designed as an extension for the SDN controller
-
-    -   This paper basically shows that the bigger picture that we want to achieve is a perfectly achievable target and the modularized approach proposed is something that we can also look to emulate.
-
-3.  Automated method for constructing of network traffic filtering rules
-
-    -   This paper focuses on constructing and assessing the quality of the network traffic filtering rules. An automated method for constructing rules is proposed in the paper.
-
-    -   With the emphasis here on building multiple rules with varying levels of access such that the rules created do not have the generalization problem, contradictions or the shadowing problem, the paper talks extensively on the algorithmic approach of building a tree with access rules as part of each of the nodes of the tree.
-
-    -   With this paper, we can understand the approach and look to take away points to implement as part of the Script helping design the script better.
-
-![Infrastructure Setup](Current_Setup_NetSec.JPG "fig:") [fig:setup]
 
 Design and Implementation
 =========================
@@ -177,31 +125,6 @@ Acknowledgements
 ================
 
 This project is being advised by Matthew McCormack, a PhD student working with Professor Vyas Sekar as part of a bigger problem titled “Automatically adding network defenses”.
-
-[ht]
-
-|**Platform**|**Total Exploits**|** Exploits Validated**|
-|:----------:|:----------------:|:---------------------:|
-|Windows Server 2008 R2 (\<all\>)|144|4|
-|Windows Server 2012 R2 (\<all\>)|155|2|
-|Windows Server 2016 R2 (\<all\>)|141|1|
-|\<All\>(SMB)|17|4|
-|\<All\>(UDP)|7|2|
-|\<All\>(HTTP)|69|2|
-
-[Validation Results]
-
-[ht]
-
-<span>|c|c|c|c|c|c|c|</span> **Platform** & **Exploits** & **Community Rules** & **GitHub Repo** & **Injection attacks** & **Coverage %**
-Windows Server 2008 R2 (\<all\>) & 144 & 36 & 63 & 0 & 68.75
-Windows Server 2012 R2 (\<all\>) & 155 & 39 & 68 & 2 & 69.03
-Windows Server 2016 R2 (\<all\>) & 141 & 33 & 60 & 0 & 65.96
-\<All\>(SMB) & 17 & 8 & 8 & 0 & 94.11
-\<All\>(UDP) & 7 & 6 & 1 & 0 & 100
-\<All\>(HTTP) & 69 & 17 & 30 & 3 & 68.11
-
-[Mapping Results]
 
 Writing Snort rule to file
 ==========================
