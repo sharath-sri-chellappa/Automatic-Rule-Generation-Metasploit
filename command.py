@@ -6,6 +6,7 @@ import json
 import re
 from pymetasploit3.msfrpc import MsfRpcClient
 import collections
+import binascii
 from scapy.all import *
 from os import listdir
 from os.path import isfile, join
@@ -165,18 +166,23 @@ def coverage_count(dictionary):
 
 def read_pcap(filename):
 	a = rdpcap(filename)
+	f = open("/etc/snort/local_test.rules", "a+")
 	sessions = a.sessions()
 	for session in sessions:
 		http_payload = ""
+		cmd = ""
 		for packet in sessions[session]:
 			try:
 				if packet[TCP].sport == 4444 and packet[TCP].payload:
-					print("alert tcp any ",packet[TCP].sport," any any (msg: \"Possible attack on port 4444\"; classtype: attempted-admin; reference: url, github.com/ptresearch/AttackDetection; metadata: Open Ptsecurity.com ruleset; sid: 120020; rev: 3;)")
+					hexd = binascii.hexlify(bytes(packet[TCP].payload))
+					cmd = "alert tcp any "+str(packet[TCP].sport)+" any any (msg: \"Possible attack on port 4444\"; payload: "+str(hexd)+"; classtype: attempted-admin; reference: url, github.com/ptresearch/AttackDetection; metadata: Open Ptsecurity.com ruleset; sid: 120020; rev: 3;)\n"
 				elif packet[TCP].dport == 4444 and packet[TCP].payload:
-					print("alert tcp any any any ",packet[TCP].dport," (msg: \"Possible attack on port 4444\"; classtype: attempted-admin; reference: url, github.com/ptresearch/AttackDetection; metadata: Open Ptsecurity.com ruleset; sid: 120020; rev: 3;)")
-					
+					hexd = binascii.hexlify(bytes(packet[TCP].payload))
+					cmd = "alert tcp any any any "+str(packet[TCP].dport)+" (msg: \"Possible attack on port 4444\"; payload: "+str(hexd)+"; classtype: attempted-admin; reference: url, github.com/ptresearch/AttackDetection; metadata: Open Ptsecurity.com ruleset; sid: 120020; rev: 3;)\n"
+				f.write(str(cmd))
 			except Exception as e:
 				print(e)
+	f.close()
 	
 platform = ' '
 target = ' '
@@ -216,5 +222,5 @@ rules = vulnerability_mapper("pass", target)
 write_to_snort(target, rules)
 
 
-# read_pcap("/root/Downloads/EXPLOIT_metasploit-itunes-m3u-CVE-2012-0677_EmergingThreats.pcap")
+read_pcap("/root/Downloads/EXPLOIT_metasploit-itunes-m3u-CVE-2012-0677_EmergingThreats.pcap")
 
