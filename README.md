@@ -105,7 +105,7 @@ The code responsible for this is given in create_rule_set_github.
 
 **Helper function to calculate coverage percentage of Ruleset**:
 
--   This helper function just calculates the coverage percentage by simply finding out the number of exploits in the Rule Set which do not have a Snort Rule as part of the Values and divides this number by the total number of exploits for the particular target OS.
+-   This helper function just calculates the coverage percentage by simply finding out the number of exploits in the Rule Set which do not have a Snort Rule as part of the Values and divides this number by the total number of exploits for the particular target OS/network service returned as output of search command.
 
 The code responsible for this is given in coverage_count.
 
